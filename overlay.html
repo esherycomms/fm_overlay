@@ -30,62 +30,10 @@
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.worker.min.js';
   </script>
 
-  <script>
-   (async () => {
-  // 1) Fetch the plan data URL from FileMaker
-  const dataUrl = FileMaker.PerformScriptAndGetResult('GetPlanDataURL');
-  // Show the first 100 chars so we can confirm it’s valid
-  const preview = dataUrl ? dataUrl.slice(0,100) + '…' : '<<no dataUrl>>';
-  document.body.innerHTML =
-    '<div style="padding:20px;font-family:sans-serif;">' +
-      '<h2>Data URL Preview</h2>' +
-      '<pre style="white-space:pre-wrap;word-break:break-all;">' + preview + '</pre>' +
-    '</div>';
-  if (!dataUrl) return;
-
-      // 2) Render the first page of the PDF
-      const pdfDoc  = await pdfjsLib.getDocument(dataUrl).promise;
-      const page    = await pdfDoc.getPage(1);
-      const vp   = page.getViewport({ scale: 1.5 });
-      const pdfCnv  = document.getElementById('pdfCanvas');
-      pdfCnv.width  = vp.width;
-      pdfCnv.height = vp.height;
-      await page.render({ canvasContext: pdfCnv.getContext('2d'), viewport: vp }).promise;
-
-      // 3) Size the overlay
-      const overlay = document.getElementById('overlayCanvas');
-      overlay.width  = vp.width;
-      overlay.height = vp.height;
-
-      let currentType = null;
-      let placements  = [];
-
-      // 4) Icon selection
-      document.getElementById('selectTO').addEventListener('click', e => {
-        currentType = 'TO';
-        e.target.textContent = 'Placing: TO';
-      });
-
-      // 5) Handle placement clicks
-      overlay.addEventListener('click', e => {
-        if (!currentType) return;
-        const rect = overlay.getBoundingClientRect();
-        const x    = Math.round(e.clientX - rect.left);
-        const y    = Math.round(e.clientY - rect.top);
-
-        // Draw icon marker
-        const iconEl = document.createElement('div');
-        iconEl.className   = 'icon';
-        iconEl.textContent = '📶';
-        iconEl.style.left  = (x - 12) + 'px';
-        iconEl.style.top   = (y - 12) + 'px';
-        document.body.appendChild(iconEl);
-
-        // Record and callback
-        placements.push({ type: currentType, x, y, page: 1 });
-        FileMaker.PerformScript('ProcessPlacements', JSON.stringify(placements));
-      });
-    })();
-  </script>
+ <script>
+  // When the page loads, call a no-op script to verify the bridge:
+  FileMaker.PerformScript('GetPlanDataURL', 'TEST');
+</script>
+  
 </body>
 </html>
