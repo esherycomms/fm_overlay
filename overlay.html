@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Plan + Overlay</title>
+  <style>
+    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
+    #toolbar {
+      position:absolute; top:10px; left:10px; z-index:3;
+      background:rgba(255,255,255,0.8); padding:4px 8px; border-radius:4px;
+      font-family:sans-serif;
+    }
+    #toolbar button { margin-right:6px; font-size:14px; }
+    #pdfCanvas, #overlayCanvas {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+    }
+    .icon {
+      position:absolute; pointer-events:none; font-size:24px; line-height:1; z-index:2;
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar"><button id="selectTO">TO</button></div>
+  <canvas id="pdfCanvas"></canvas>
+  <canvas id="overlayCanvas"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.worker.min.js';
+  </script>
+
+  <script>
+    (async () => {
+      // 1) Fetch the plan data URL from FileMaker
+      const dataUrl = FileMaker.PerformScriptAndGetResult('GetPlanDataURL');
+      if (!dataUrl) return alert('No plan data found');
+
+      // 2) Render the first page of the PDF
+      const pdfDoc  = await pdfjsLib.getDocument(dataUrl).promise;
+      const page    = await pdfDoc.getPage(1);
+      const vp   = page.getViewport({ scale: 1.5 });
+      const pdfCnv  = document.getElementById('pdfCanvas');
+      pdfCnv.width  = vp.width;
+      pdfCnv.height = vp.height;
+      await page.render({ canvasContext: pdfCnv.getContext('2d'), viewport: vp }).promise;
+
+      // 3) Size the overlay
+      const overlay = document.getElementById('overlayCanvas');
+      overlay.width  = vp.width;
+      overlay.height = vp.height;
+
+      let currentType = null;
+      let placements  = [];
+
+      // 4) Icon selection
+      document.getElementById('selectTO').addEventListener('click', e => {
+        currentType = 'TO';
+        e.target.textContent = 'Placing: TO';
+      });
+
+      // 5) Handle placement clicks
+      overlay.addEventListener('click', e => {
+        if (!currentType) return;
+        const rect = overlay.getBoundingClientRect();
+        const x    = Math.round(e.clientX - rect.left);
+        const y    = Math.round(e.clientY - rect.top);
+
+        // Draw icon marker
+        const iconEl = document.createElement('div');
+        iconEl.className   = 'icon';
+        iconEl.textContent = '📶';
+        iconEl.style.left  = (x - 12) + 'px';
+        iconEl.style.top   = (y - 12) + 'px';
+        document.body.appendChild(iconEl);
+
+        // Record and callback
+        placements.push({ type: currentType, x, y, page: 1 });
+        FileMaker.PerformScript('ProcessPlacements', JSON.stringify(placements));
+      });
+    })();
+  </script>
+</body>
+</html>
