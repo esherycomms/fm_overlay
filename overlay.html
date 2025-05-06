@@ -31,10 +31,17 @@
   </script>
 
   <script>
-    (async () => {
-      // 1) Fetch the plan data URL from FileMaker
-      const dataUrl = FileMaker.PerformScriptAndGetResult('GetPlanDataURL');
-      if (!dataUrl) return alert('No plan data found');
+   (async () => {
+  // 1) Fetch the plan data URL from FileMaker
+  const dataUrl = FileMaker.PerformScriptAndGetResult('GetPlanDataURL');
+  // Show the first 100 chars so we can confirm it’s valid
+  const preview = dataUrl ? dataUrl.slice(0,100) + '…' : '<<no dataUrl>>';
+  document.body.innerHTML =
+    '<div style="padding:20px;font-family:sans-serif;">' +
+      '<h2>Data URL Preview</h2>' +
+      '<pre style="white-space:pre-wrap;word-break:break-all;">' + preview + '</pre>' +
+    '</div>';
+  if (!dataUrl) return;
 
       // 2) Render the first page of the PDF
       const pdfDoc  = await pdfjsLib.getDocument(dataUrl).promise;
